@@ -1,0 +1,2892 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>CloudMiner - Plataforma de Minería en la Nube</title>
+
+<!--
+╔════════════════════════════════════════════════════════════════════════════════╗
+║                    CLOUDMINER - USER APPLICATION                               ║
+║                    Mobile-First Cloud Mining Platform                          ║
+╚════════════════════════════════════════════════════════════════════════════════╝
+-->
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
+<!-- Three.js for 3D effects -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+<style>
+:root {
+  --primary: #00d9ff;
+  --primary-dark: #0099cc;
+  --secondary: #ff00ff;
+  --bg-dark: #0a0e27;
+  --bg-card: #1a1f3a;
+  --bg-card-hover: #242a4a;
+  --text-primary: #ffffff;
+  --text-secondary: #a0aec0;
+  --success: #00ff88;
+  --warning: #ffaa00;
+  --danger: #ff3366;
+  --border: rgba(0, 217, 255, 0.2);
+  --shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  --glass: rgba(26, 31, 58, 0.8);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: var(--bg-dark);
+  color: var(--text-primary);
+  overflow-x: hidden;
+  padding-bottom: 80px;
+}
+
+/* Glass morphism effect */
+.glass {
+  background: var(--glass);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+}
+
+/* Container */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+/* Hidden class */
+.hidden {
+  display: none !important;
+}
+
+/* Button styles */
+.btn {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  display: inline-block;
+  text-align: center;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  color: white;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 217, 255, 0.4);
+}
+
+.btn-secondary {
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+}
+
+.btn-danger {
+  background: var(--danger);
+  color: white;
+}
+
+.btn-success {
+  background: var(--success);
+  color: var(--bg-dark);
+}
+
+.btn-sm {
+  padding: 8px 16px;
+  font-size: 14px;
+}
+
+/* Form styles */
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  padding: 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 16px;
+  transition: border 0.3s ease;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+/* Bottom Navigation */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--glass);
+  backdrop-filter: blur(20px);
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: space-around;
+  padding: 10px 0;
+  z-index: 1000;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.bottom-nav::-webkit-scrollbar {
+  height: 4px;
+}
+
+.bottom-nav::-webkit-scrollbar-thumb {
+  background: var(--primary);
+  border-radius: 2px;
+}
+
+.nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 70px;
+  text-decoration: none;
+  color: var(--text-secondary);
+}
+
+.nav-item:hover,
+.nav-item.active {
+  color: var(--primary);
+}
+
+.nav-item svg {
+  width: 24px;
+  height: 24px;
+  margin-bottom: 4px;
+}
+
+.nav-item span {
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+/* Hero Section */
+#hero {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+#hero-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+}
+
+.hero-content {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  padding: 20px;
+}
+
+.hero-content h1 {
+  font-size: clamp(2rem, 5vw, 4rem);
+  margin-bottom: 20px;
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: glow 2s ease-in-out infinite alternate;
+}
+
+@keyframes glow {
+  from {
+    filter: drop-shadow(0 0 10px rgba(0, 217, 255, 0.5));
+  }
+  to {
+    filter: drop-shadow(0 0 20px rgba(0, 217, 255, 0.8));
+  }
+}
+
+.hero-content p {
+  font-size: clamp(1rem, 2vw, 1.5rem);
+  color: var(--text-secondary);
+  margin-bottom: 30px;
+}
+
+.hero-buttons {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* Feature Cards */
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+  margin-top: 40px;
+}
+
+.feature-card {
+  background: var(--bg-card);
+  border-radius: 16px;
+  padding: 30px;
+  border: 1px solid var(--border);
+  transition: all 0.3s ease;
+  text-align: center;
+}
+
+.feature-card:hover {
+  transform: translateY(-10px);
+  box-shadow: var(--shadow);
+  border-color: var(--primary);
+}
+
+.feature-icon {
+  font-size: 3rem;
+  margin-bottom: 15px;
+}
+
+.feature-card h3 {
+  color: var(--primary);
+  margin-bottom: 10px;
+}
+
+.feature-card p {
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* Cards */
+.card {
+  background: var(--bg-card);
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 20px;
+  border: 1px solid var(--border);
+  transition: all 0.3s ease;
+}
+
+.card:hover {
+  background: var(--bg-card-hover);
+  transform: translateY(-4px);
+  box-shadow: var(--shadow);
+}
+
+/* Machine Grid */
+.machine-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.machine-card {
+  background: var(--bg-card);
+  border-radius: 16px;
+  padding: 20px;
+  border: 1px solid var(--border);
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.machine-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow);
+  border-color: var(--primary);
+}
+
+.machine-image {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  border-radius: 12px;
+  margin-bottom: 15px;
+  background: var(--bg-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+}
+
+.machine-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 12px;
+}
+
+.machine-rarity {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.rarity-common {
+  background: rgba(128, 128, 128, 0.2);
+  color: #aaa;
+}
+
+.rarity-rare {
+  background: rgba(0, 150, 255, 0.2);
+  color: #0096ff;
+}
+
+.rarity-legendary {
+  background: rgba(255, 215, 0, 0.2);
+  color: #ffd700;
+}
+
+/* Modal */
+.modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  z-index: 2000;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.modal.active {
+  display: flex;
+}
+
+.modal-content {
+  background: var(--bg-card);
+  border-radius: 16px;
+  padding: 30px;
+  max-width: 600px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  position: relative;
+}
+
+.modal-close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 24px;
+  cursor: pointer;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Stats Grid */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 15px;
+  margin: 20px 0;
+}
+
+.stat-card {
+  background: var(--bg-card);
+  padding: 15px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  text-align: center;
+}
+
+.stat-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--primary);
+  margin-bottom: 5px;
+}
+
+.stat-label {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+/* Transaction List */
+.transaction-list {
+  margin-top: 20px;
+}
+
+.transaction-item {
+  background: var(--bg-card);
+  padding: 15px;
+  border-radius: 12px;
+  margin-bottom: 10px;
+  border: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.transaction-status {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.status-approved {
+  background: rgba(0, 255, 136, 0.2);
+  color: var(--success);
+}
+
+.status-pending {
+  background: rgba(255, 170, 0, 0.2);
+  color: var(--warning);
+}
+
+.status-rejected {
+  background: rgba(255, 51, 102, 0.2);
+  color: var(--danger);
+}
+
+/* Loading Spinner */
+.spinner {
+  border: 3px solid var(--border);
+  border-top: 3px solid var(--primary);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+  margin: 20px auto;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .hero-buttons {
+    flex-direction: column;
+  }
+  
+  .machine-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Alert */
+.alert {
+  padding: 15px 20px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  border: 1px solid;
+}
+
+.alert-success {
+  background: rgba(0, 255, 136, 0.1);
+  border-color: var(--success);
+  color: var(--success);
+}
+
+.alert-warning {
+  background: rgba(255, 170, 0, 0.1);
+  border-color: var(--warning);
+  color: var(--warning);
+}
+
+.alert-danger {
+  background: rgba(255, 51, 102, 0.1);
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.alert-info {
+  background: rgba(0, 217, 255, 0.1);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+/* Section Spacing */
+section {
+  padding: 40px 0;
+}
+
+section h2 {
+  font-size: 2rem;
+  margin-bottom: 30px;
+  text-align: center;
+}
+
+/* Progress Bar */
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  background: var(--bg-card);
+  border-radius: 4px;
+  overflow: hidden;
+  margin: 10px 0;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary), var(--secondary));
+  transition: width 0.3s ease;
+}
+
+/* Copy Button */
+.copy-btn {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--primary);
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.3s ease;
+  margin-left: 10px;
+}
+
+.copy-btn:hover {
+  background: var(--primary);
+  color: var(--bg-dark);
+}
+
+/* Image Preview */
+.image-preview {
+  width: 100%;
+  max-width: 400px;
+  height: 200px;
+  border: 2px dashed var(--border);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 10px auto;
+  overflow: hidden;
+  background: var(--bg-dark);
+}
+
+.image-preview img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+/* Charts Canvas */
+.chart-container {
+  position: relative;
+  height: 300px;
+  margin: 20px 0;
+}
+
+canvas {
+  max-width: 100%;
+}
+
+/* Farm 3D Container */
+#farm-3d-container {
+  width: 100%;
+  height: 300px;
+  background: var(--bg-dark);
+  border-radius: 16px;
+  margin-bottom: 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* User Machines List */
+.user-machine-item {
+  background: var(--bg-card);
+  padding: 15px;
+  border-radius: 12px;
+  margin-bottom: 15px;
+  border: 1px solid var(--border);
+}
+
+.machine-status {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-left: 10px;
+}
+
+.status-active {
+  background: rgba(0, 255, 136, 0.2);
+  color: var(--success);
+}
+
+.status-paused {
+  background: rgba(255, 170, 0, 0.2);
+  color: var(--warning);
+}
+
+.status-retired {
+  background: rgba(255, 51, 102, 0.2);
+  color: var(--danger);
+}
+
+/* Tabs */
+.tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  border-bottom: 2px solid var(--border);
+  overflow-x: auto;
+}
+
+.tab {
+  padding: 12px 24px;
+  cursor: pointer;
+  border: none;
+  background: none;
+  color: var(--text-secondary);
+  font-size: 16px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+  border-bottom: 3px solid transparent;
+}
+
+.tab.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+}
+
+.tab-content {
+  display: none;
+}
+
+.tab-content.active {
+  display: block;
+}
+
+/* Roadmap Timeline */
+.timeline {
+  position: relative;
+  padding: 20px 0;
+}
+
+.timeline-item {
+  position: relative;
+  padding-left: 40px;
+  margin-bottom: 30px;
+}
+
+.timeline-item::before {
+  content: '';
+  position: absolute;
+  left: 10px;
+  top: 0;
+  bottom: -30px;
+  width: 2px;
+  background: var(--border);
+}
+
+.timeline-item::after {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 5px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--primary);
+  box-shadow: 0 0 10px var(--primary);
+}
+
+.timeline-item:last-child::before {
+  display: none;
+}
+</style>
+</head>
+<body>
+
+<!-- Page Container -->
+<div id="app">
+  
+  <!-- Landing/Hero Section -->
+  <section id="hero" class="view">
+    <canvas id="hero-canvas"></canvas>
+    <div class="hero-content">
+      <h1>CloudMiner Pro</h1>
+      <p>La plataforma líder de minería en la nube con tecnología de punta</p>
+      <div class="hero-buttons">
+        <button class="btn btn-primary" onclick="showView('register-view')">Registrarse Gratis</button>
+        <button class="btn btn-secondary" onclick="showView('login-view')">Iniciar Sesión</button>
+      </div>
+      
+      <!-- Added feature highlights in hero -->
+      <div class="feature-grid" style="margin-top: 60px;">
+        <div class="feature-card">
+          <div class="feature-icon">⚡</div>
+          <h3>Minería Automática</h3>
+          <p>Tus máquinas trabajan 24/7 generando ingresos pasivos sin intervención</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🔒</div>
+          <h3>100% Seguro</h3>
+          <p>Tecnología blockchain y encriptación de nivel bancario</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">💰</div>
+          <h3>Retiros Rápidos</h3>
+          <p>Retira tus ganancias en múltiples criptomonedas cuando quieras</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">📈</div>
+          <h3>ROI Garantizado</h3>
+          <p>Recupera tu inversión y empieza a ganar desde el primer día</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- How It Works Section -->
+  <section id="how-it-works" class="hidden">
+    <div class="container">
+      <h2>¿Cómo Funciona?</h2>
+      <div class="machine-grid">
+        <div class="card">
+          <div class="feature-icon">1️⃣</div>
+          <h3>Regístrate</h3>
+          <p>Crea tu cuenta de forma gratuita en menos de 2 minutos.</p>
+        </div>
+        <div class="card">
+          <div class="feature-icon">2️⃣</div>
+          <h3>Deposita Fondos</h3>
+          <p>Recarga tu billetera con criptomonedas (USDT, BTC, ETH, TRX).</p>
+        </div>
+        <div class="card">
+          <div class="feature-icon">3️⃣</div>
+          <h3>Compra Máquinas</h3>
+          <p>Selecciona las mejores máquinas de minería del mercado.</p>
+        </div>
+        <div class="card">
+          <div class="feature-icon">4️⃣</div>
+          <h3>Gana Pasivamente</h3>
+          <p>Observa cómo tus máquinas generan ingresos las 24 horas.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Roadmap Section -->
+  <section id="roadmap" class="hidden">
+    <div class="container">
+      <h2>Roadmap 2024-2025</h2>
+      <div class="timeline">
+        <div class="timeline-item">
+          <div class="card">
+            <h3>Q4 2024</h3>
+            <ul style="color: var(--text-secondary); line-height: 2;">
+              <li>✅ Lanzamiento de plataforma beta</li>
+              <li>✅ Integración con Telegram</li>
+              <li>⏳ App móvil nativa (iOS/Android)</li>
+            </ul>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="card">
+            <h3>Q1 2025</h3>
+            <ul style="color: var(--text-secondary); line-height: 2;">
+              <li>🔜 Staking de tokens</li>
+              <li>🔜 Sistema de referidos multinivel</li>
+              <li>🔜 Máquinas NFT coleccionables</li>
+            </ul>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="card">
+            <h3>Q2 2025</h3>
+            <ul style="color: var(--text-secondary); line-height: 2;">
+              <li>🔜 Marketplace peer-to-peer</li>
+              <li>🔜 Gamificación y logros</li>
+              <li>🔜 Integración con exchanges</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Login View -->
+  <section id="login-view" class="view hidden">
+    <div class="container">
+      <div class="card" style="max-width: 500px; margin: 40px auto;">
+        <h2 style="text-align: center; margin-bottom: 30px;">Iniciar Sesión</h2>
+        <form id="login-form">
+          <div class="form-group">
+            <label>Email</label>
+            <input type="email" id="login-email" required placeholder="tu@email.com">
+          </div>
+          <div class="form-group">
+            <label>Contraseña</label>
+            <input type="password" id="login-password" required placeholder="••••••••">
+          </div>
+          <button type="submit" class="btn btn-primary" style="width: 100%; margin-bottom: 15px;">Entrar</button>
+          <button type="button" class="btn btn-secondary" style="width: 100%; margin-bottom: 10px;" onclick="showView('register-view')">¿No tienes cuenta? Regístrate</button>
+          <button type="button" class="btn btn-secondary" style="width: 100%;" onclick="resetPassword()">Olvidé mi contraseña</button>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- Register View -->
+  <section id="register-view" class="view hidden">
+    <div class="container">
+      <div class="card" style="max-width: 500px; margin: 40px auto;">
+        <h2 style="text-align: center; margin-bottom: 30px;">Crear Cuenta</h2>
+        <form id="register-form">
+          <div class="form-group">
+            <label>Nombre de Usuario</label>
+            <input type="text" id="register-username" required placeholder="tu_nombre">
+          </div>
+          <div class="form-group">
+            <label>Email</label>
+            <input type="email" id="register-email" required placeholder="tu@email.com">
+          </div>
+          <div class="form-group">
+            <label>Contraseña</label>
+            <input type="password" id="register-password" required placeholder="••••••••" minlength="6">
+          </div>
+          <div class="form-group">
+            <label>Confirmar Contraseña</label>
+            <input type="password" id="register-confirm" required placeholder="••••••••">
+          </div>
+          <div class="form-group">
+            <label>Telegram ID (opcional)</label>
+            <input type="text" id="register-telegram" placeholder="@tu_usuario">
+          </div>
+          <button type="submit" class="btn btn-primary" style="width: 100%; margin-bottom: 15px;">Registrarse</button>
+          <button type="button" class="btn btn-secondary" style="width: 100%;" onclick="showView('login-view')">¿Ya tienes cuenta? Inicia sesión</button>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- Dashboard View -->
+  <section id="dashboard-view" class="view hidden">
+    <div class="container">
+      <h2>Dashboard</h2>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-value" id="stat-balance">$0.00</div>
+          <div class="stat-label">Balance</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="stat-machines">0</div>
+          <div class="stat-label">Máquinas Activas</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="stat-power">0</div>
+          <div class="stat-label">Poder Total</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="stat-earnings">$0.00</div>
+          <div class="stat-label">Ganancias Hoy</div>
+        </div>
+      </div>
+      
+      <div class="card">
+        <h3>Ganancias Recientes</h3>
+        <div class="chart-container">
+          <canvas id="earnings-chart"></canvas>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Actividad Reciente</h3>
+        <div id="recent-activity" class="transaction-list">
+          <p style="text-align: center; color: var(--text-secondary);">No hay actividad reciente</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Farm View -->
+  <section id="farm-view" class="view hidden">
+    <div class="container">
+      <h2>Mi Granja de Minería</h2>
+      
+      <!-- 3D Farm Container -->
+      <div id="farm-3d-container">
+        <canvas id="farm-canvas"></canvas>
+      </div>
+      
+      <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+          <h3>Mis Máquinas</h3>
+          <button class="btn btn-primary" onclick="claimAllRewards()">💰 Reclamar Todo</button>
+        </div>
+        <div id="user-machines-list">
+          <p style="text-align: center; color: var(--text-secondary);">No tienes máquinas aún. ¡Compra tu primera máquina en el mercado!</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>⚙️ Controles</h3>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+          <button class="btn btn-secondary" onclick="toggleSound()">🔊 Sonido</button>
+          <button class="btn btn-secondary" onclick="toggle3D()">🎮 3D</button>
+          <button class="btn btn-secondary" onclick="pauseAllMachines()">⏸️ Pausar Todas</button>
+          <button class="btn btn-secondary" onclick="resumeAllMachines()">▶️ Reanudar Todas</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Marketplace View -->
+  <section id="marketplace-view" class="view hidden">
+    <div class="container">
+      <h2>Mercado</h2>
+      
+      <div class="tabs">
+        <button class="tab active" onclick="switchTab('machines-tab')">Máquinas</button>
+        <button class="tab" onclick="switchTab('parts-tab')">Mejoras</button>
+      </div>
+
+      <div id="machines-tab" class="tab-content active">
+        <div class="machine-grid" id="machines-grid">
+          <!-- Machines loaded dynamically -->
+        </div>
+      </div>
+
+      <div id="parts-tab" class="tab-content">
+        <div class="machine-grid" id="parts-grid">
+          <!-- Parts loaded dynamically -->
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Wallet View -->
+  <section id="wallet-view" class="view hidden">
+    <div class="container">
+      <h2>Mi Billetera</h2>
+      
+      <div class="card">
+        <h3 style="text-align: center;">Balance Disponible</h3>
+        <div class="stat-value" id="wallet-balance" style="text-align: center; font-size: 3rem; margin: 20px 0;">$0.00</div>
+        <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
+          <button class="btn btn-success" onclick="showDepositModal()">💳 Depositar</button>
+          <button class="btn btn-danger" onclick="showWithdrawModal()">💸 Retirar</button>
+        </div>
+      </div>
+
+      <div class="tabs">
+        <button class="tab active" onclick="switchTab('transactions-tab')">Transacciones</button>
+        <button class="tab" onclick="switchTab('deposits-tab')">Depósitos</button>
+        <button class="tab" onclick="switchTab('withdrawals-tab')">Retiros</button>
+      </div>
+
+      <div id="transactions-tab" class="tab-content active">
+        <div class="card">
+          <h3>Historial de Transacciones</h3>
+          <div id="transactions-list" class="transaction-list">
+            <p style="text-align: center; color: var(--text-secondary);">No hay transacciones</p>
+          </div>
+        </div>
+      </div>
+
+      <div id="deposits-tab" class="tab-content">
+        <div class="card">
+          <h3>Mis Depósitos</h3>
+          <div id="deposits-list" class="transaction-list">
+            <p style="text-align: center; color: var(--text-secondary);">No hay depósitos</p>
+          </div>
+        </div>
+      </div>
+
+      <div id="withdrawals-tab" class="tab-content">
+        <div class="card">
+          <h3>Mis Retiros</h3>
+          <div id="withdrawals-list" class="transaction-list">
+            <p style="text-align: center; color: var(--text-secondary);">No hay retiros</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Support View -->
+  <section id="support-view" class="view hidden">
+    <div class="container">
+      <h2>Soporte</h2>
+      
+      <div class="card">
+        <h3>Canales de Contacto</h3>
+        <div id="contact-channels" style="display: flex; flex-direction: column; gap: 15px; margin-top: 20px;">
+          <!-- Loaded dynamically from settings -->
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Enviar Mensaje</h3>
+        <form id="support-form">
+          <div class="form-group">
+            <label>Asunto</label>
+            <input type="text" id="support-subject" required placeholder="Describe tu problema">
+          </div>
+          <div class="form-group">
+            <label>Mensaje</label>
+            <textarea id="support-message" rows="6" required placeholder="Explica tu problema en detalle..."></textarea>
+          </div>
+          <button type="submit" class="btn btn-primary" style="width: 100%;">Enviar Mensaje</button>
+        </form>
+      </div>
+
+      <div class="card">
+        <h3>FAQ - Preguntas Frecuentes</h3>
+        <div style="margin-top: 20px;">
+          <details style="margin-bottom: 15px;">
+            <summary style="cursor: pointer; font-weight: 600; padding: 10px; background: var(--bg-dark); border-radius: 8px;">¿Cómo funciona la minería?</summary>
+            <p style="padding: 15px; color: var(--text-secondary);">Las máquinas generan ingresos automáticamente cada hora basándose en su poder de minería. Los ingresos se calculan usando timestamps precisos.</p>
+          </details>
+          <details style="margin-bottom: 15px;">
+            <summary style="cursor: pointer; font-weight: 600; padding: 10px; background: var(--bg-dark); border-radius: 8px;">¿Cuánto tiempo tarda un depósito?</summary>
+            <p style="padding: 15px; color: var(--text-secondary);">Los depósitos son revisados manualmente por el equipo admin. Generalmente se aprueban en menos de 24 horas.</p>
+          </details>
+          <details style="margin-bottom: 15px;">
+            <summary style="cursor: pointer; font-weight: 600; padding: 10px; background: var(--bg-dark); border-radius: 8px;">¿Puedo vender mis máquinas?</summary>
+            <p style="padding: 15px; color: var(--text-secondary);">Sí, puedes vender tus máquinas pero el valor de reventa depende de la depreciación acumulada.</p>
+          </details>
+          <details style="margin-bottom: 15px;">
+            <summary style="cursor: pointer; font-weight: 600; padding: 10px; background: var(--bg-dark); border-radius: 8px;">¿Qué son las mejoras?</summary>
+            <p style="padding: 15px; color: var(--text-secondary);">Las mejoras son componentes que puedes instalar en tus máquinas para aumentar su poder o reducir el consumo eléctrico.</p>
+          </details>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Profile View -->
+  <section id="profile-view" class="view hidden">
+    <div class="container">
+      <h2>Mi Perfil</h2>
+      
+      <div class="card">
+        <h3>Información Personal</h3>
+        <div id="profile-info" style="margin-top: 20px;">
+          <!-- Loaded dynamically -->
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Configuración</h3>
+        <div class="form-group">
+          <label>Nombre de Usuario</label>
+          <input type="text" id="profile-username" placeholder="Nombre de usuario">
+        </div>
+        <div class="form-group">
+          <label>Telegram ID</label>
+          <input type="text" id="profile-telegram" placeholder="@tu_telegram">
+        </div>
+        <button class="btn btn-primary" onclick="updateProfile()">Guardar Cambios</button>
+      </div>
+
+      <div class="card">
+        <h3>Seguridad</h3>
+        <button class="btn btn-secondary" style="width: 100%; margin-bottom: 10px;" onclick="changePassword()">Cambiar Contraseña</button>
+        <button class="btn btn-danger" style="width: 100%;" onclick="logout()">Cerrar Sesión</button>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<!-- Bottom Navigation -->
+<nav class="bottom-nav hidden" id="bottom-nav">
+  <a class="nav-item active" onclick="showView('dashboard-view')">
+    <svg fill="currentColor" viewBox="0 0 20 20"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/></svg>
+    <span>Inicio</span>
+  </a>
+  <a class="nav-item" onclick="showView('farm-view')">
+    <svg fill="currentColor" viewBox="0 0 20 20"><path d="M3 12v3c0 1.657 3.134 3 7 3s7-1.343 7-3v-3c0 1.657-3.134 3-7 3s-7-1.343-7-3z"/><path d="M3 7v3c0 1.657 3.134 3 7 3s7-1.343 7-3V7c0 1.657-3.134 3-7 3S3 8.657 3 7z"/><path d="M17 5c0 1.657-3.134 3-7 3S3 6.657 3 5s3.134-3 7-3 7 1.343 7 3z"/></svg>
+    <span>Granja</span>
+  </a>
+  <a class="nav-item" onclick="showView('marketplace-view')">
+    <svg fill="currentColor" viewBox="0 0 20 20"><path d="M3 1a1 1 0 000 2h1.22l.305 1.222a.997.997 0 00.01.042l1.358 5.43-.893.892C3.74 11.846 4.632 14 6.414 14H15a1 1 0 000-2H6.414l1-1H14a1 1 0 00.894-.553l3-6A1 1 0 0017 3H6.28l-.31-1.243A1 1 0 005 1H3zM16 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM6.5 18a1.5 1.5 0 100-3 1.5 1.5 0 000 3z"/></svg>
+    <span>Mercado</span>
+  </a>
+  <a class="nav-item" onclick="showView('wallet-view')">
+    <svg fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/></svg>
+    <span>Billetera</span>
+  </a>
+  <a class="nav-item" onclick="showView('support-view')">
+    <svg fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-2 0c0 .993-.241 1.929-.668 2.754l-1.524-1.525a3.997 3.997 0 00.078-2.183l1.562-1.562C15.802 8.249 16 9.1 16 10zm-5.165 3.913l1.58 1.58A5.98 5.98 0 0110 16a5.976 5.976 0 01-2.516-.552l1.562-1.562a4.006 4.006 0 001.789.027zm-4.677-2.796a4.002 4.002 0 01-.041-2.08l-.08.08-1.53-1.533A5.98 5.98 0 004 10c0 .954.223 1.856.619 2.657l1.54-1.54zm1.088-6.45A5.974 5.974 0 0110 4c.954 0 1.856.223 2.657.619l-1.54 1.54a4.002 4.002 0 00-2.346.033L7.246 4.668zM12 10a2 2 0 11-4 0 2 2 0 014 0z" clip-rule="evenodd"/></svg>
+    <span>Soporte</span>
+  </a>
+  <a class="nav-item" onclick="showView('profile-view')">
+    <svg fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/></svg>
+    <span>Perfil</span>
+  </a>
+</nav>
+
+<!-- Modals -->
+
+<!-- Purchase Confirmation Modal -->
+<div id="purchase-modal" class="modal">
+  <div class="modal-content">
+    <button class="modal-close" onclick="closeModal('purchase-modal')">&times;</button>
+    <h2>Confirmar Compra</h2>
+    <div id="purchase-details"></div>
+    <div style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px;">
+      <button class="btn btn-secondary" onclick="closeModal('purchase-modal')">Cancelar</button>
+      <button class="btn btn-primary" onclick="confirmPurchase()">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Manage Parts Modal -->
+<div id="manage-parts-modal" class="modal">
+  <div class="modal-content" style="max-width: 600px;">
+    <button class="modal-close" onclick="closeModal('manage-parts-modal')">&times;</button>
+    <h2>Gestionar Mejoras</h2>
+    <div id="machine-parts-info" style="margin-bottom: 20px;"></div>
+    <h3>Mejoras Disponibles</h3>
+    <div id="available-parts" class="parts-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; margin-top: 15px;"></div>
+    <div style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px;">
+      <button class="btn btn-secondary" onclick="closeModal('manage-parts-modal')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Deposit Modal -->
+<div id="deposit-modal" class="modal">
+  <div class="modal-content">
+    <button class="modal-close" onclick="closeModal('deposit-modal')">&times;</button>
+    <h2>Depositar Fondos</h2>
+    <form id="deposit-form">
+      <div class="form-group">
+        <label>Moneda</label>
+        <select id="deposit-currency" required onchange="updateDepositAddress()">
+          <option value="">Selecciona una moneda</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Dirección de Depósito</label>
+        <div style="display: flex; gap: 10px;">
+          <input type="text" id="deposit-address" readonly style="flex: 1;">
+          <button type="button" class="copy-btn" onclick="copyToClipboard('deposit-address')">📋</button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Monto a Depositar</label>
+        <input type="number" id="deposit-amount" required min="1" step="0.01" placeholder="100.00">
+      </div>
+      <div class="form-group">
+        <label>ID de Transacción / Hash</label>
+        <input type="text" id="deposit-txid" required placeholder="0x1234...">
+      </div>
+      <div class="form-group">
+        <label>Comprobante (Imagen)</label>
+        <input type="file" id="deposit-proof" accept="image/*" onchange="previewImage('deposit-proof', 'deposit-preview')">
+        <div class="image-preview" id="deposit-preview">
+          <span style="color: var(--text-secondary);">Selecciona una imagen</span>
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary" style="width: 100%;">Enviar Depósito</button>
+    </form>
+  </div>
+</div>
+
+<!-- Withdraw Modal -->
+<div id="withdraw-modal" class="modal">
+  <div class="modal-content">
+    <button class="modal-close" onclick="closeModal('withdraw-modal')">&times;</button>
+    <h2>Retirar Fondos</h2>
+    <form id="withdraw-form">
+      <div class="form-group">
+        <label>Moneda</label>
+        <select id="withdraw-currency" required onchange="updateMinWithdraw()">
+          <option value="">Selecciona una moneda</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Monto a Retirar</label>
+        <input type="number" id="withdraw-amount" required min="1" step="0.01" placeholder="50.00">
+        <small id="min-withdraw-text" style="color: var(--text-secondary);"></small>
+      </div>
+      <div class="form-group">
+        <label>Dirección de Destino</label>
+        <input type="text" id="withdraw-address" required placeholder="Tu dirección de billetera">
+      </div>
+      <button type="submit" class="btn btn-danger" style="width: 100%;">Solicitar Retiro</button>
+    </form>
+  </div>
+</div>
+
+<!-- Onboarding Modal -->
+<div id="onboarding-modal" class="modal">
+  <div class="modal-content">
+    <h2>¡Bienvenido a CloudMiner! 🎉</h2>
+    <div style="margin: 30px 0;">
+      <h3>Primeros Pasos:</h3>
+      <ol style="color: var(--text-secondary); line-height: 2;">
+        <li><strong>Deposita fondos</strong> en tu billetera</li>
+        <li><strong>Compra máquinas</strong> en el mercado</li>
+        <li><strong>Observa tus ganancias</strong> crecer automáticamente</li>
+        <li><strong>Reclama tus recompensas</strong> cuando quieras</li>
+        <li><strong>Retira tus ganancias</strong> a tu billetera personal</li>
+      </ol>
+      <div class="alert alert-info" style="margin-top: 20px;">
+        <strong>💡 Consejo:</strong> Los depósitos y retiros requieren aprobación manual del equipo admin. ¡Ten paciencia!
+      </div>
+    </div>
+    <button class="btn btn-primary" style="width: 100%;" onclick="closeModal('onboarding-modal')">¡Entendido!</button>
+  </div>
+</div>
+
+<!-- Machine Details Modal -->
+<div id="machine-details-modal" class="modal">
+  <div class="modal-content">
+    <button class="modal-close" onclick="closeModal('machine-details-modal')">&times;</button>
+    <div id="machine-details-content">
+      <!-- Loaded dynamically -->
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════
+// FIREBASE CONFIGURATION
+// ═══════════════════════════════════════════════════════════════════════════
+
+const firebaseConfig = {
+  apiKey: "AIzaSyApT6CoG05h_123FdgcRXGA8McfFLwfgYo",
+  authDomain: "ecommerce-3e3d8.firebaseapp.com",
+  databaseURL: "https://ecommerce-3e3d8-default-rtdb.firebaseio.com",
+  projectId: "ecommerce-3e3d8",
+  storageBucket: "ecommerce-3e3d8.firebasestorage.app",
+  messagingSenderId: "852210664993",
+  appId: "1:852210664993:web:96a24f851dc5f94985c560",
+  measurementId: "G-EHMSTCNWN0"
+};
+
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.database();
+
+// ═══════════════════════════════════════════════════════════════════════════
+// GLOBAL STATE
+// ═══════════════════════════════════════════════════════════════════════════
+
+let currentUser = null;
+let userProfile = null;
+let settings = null;
+let machinesCatalog = {};
+let partsCatalog = {};
+let currentMachineInstance = null;  // Para rastrear la máquina actual en la gestión de mejoras
+let userMachines = {};
+let soundEnabled = true;
+let render3D = true;
+let currentPurchaseItem = null;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// INITIALIZATION
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Auth State Observer
+auth.onAuthStateChanged(async (user) => {
+  if (user) {
+    currentUser = user;
+    await loadUserData();
+    showView('dashboard-view');
+    document.getElementById('bottom-nav').classList.remove('hidden');
+    startRealtimeUpdates();
+  } else {
+    currentUser = null;
+    userProfile = null;
+    showView('hero');
+    document.getElementById('bottom-nav').classList.add('hidden');
+  }
+});
+
+// Load user data from Firebase
+async function loadUserData() {
+  try {
+    const userSnap = await db.ref(`users/${currentUser.uid}`).once('value');
+    userProfile = userSnap.val();
+    
+    if (!userProfile) {
+      console.error('User profile not found');
+      return;
+    }
+
+    // Load settings
+    const settingsSnap = await db.ref('settings').once('value');
+    settings = settingsSnap.val();
+
+    // Load catalogs
+    const machinesSnap = await db.ref('machines_catalog').once('value');
+    machinesCatalog = machinesSnap.val() || {};
+
+    const partsSnap = await db.ref('parts_catalog').once('value');
+    partsCatalog = partsSnap.val() || {};
+
+    // Load user machines
+    const userMachinesSnap = await db.ref(`user_machines/${currentUser.uid}`).once('value');
+    userMachines = userMachinesSnap.val() || {};
+
+    // Update UI
+    updateDashboard();
+    loadMarketplace();
+    loadWallet();
+    loadProfile();
+    loadSupport();
+    loadFarm();
+
+    // Check if first login
+    const lastLogin = localStorage.getItem(`last_login_${currentUser.uid}`);
+    if (!lastLogin) {
+      setTimeout(() => {
+        document.getElementById('onboarding-modal').classList.add('active');
+      }, 1000);
+      localStorage.setItem(`last_login_${currentUser.uid}`, Date.now());
+    }
+
+  } catch (error) {
+    console.error('Error loading user data:', error);
+    showAlert('Error al cargar datos', 'danger');
+  }
+}
+
+function startRealtimeUpdates() {
+  // Update balance in realtime
+  db.ref(`users/${currentUser.uid}/balance`).on('value', (snap) => {
+    if (snap.exists() && userProfile) {
+      userProfile.balance = snap.val();
+      document.getElementById('stat-balance').textContent = `$${userProfile.balance.toFixed(2)}`;
+      document.getElementById('wallet-balance').textContent = `$${userProfile.balance.toFixed(2)}`;
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// AUTHENTICATION
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Register
+document.getElementById('register-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  
+  const username = document.getElementById('register-username').value.trim();
+  const email = document.getElementById('register-email').value.trim();
+  const password = document.getElementById('register-password').value;
+  const confirm = document.getElementById('register-confirm').value;
+  const telegram = document.getElementById('register-telegram').value.trim();
+
+  if (password !== confirm) {
+    showAlert('Las contraseñas no coinciden', 'danger');
+    return;
+  }
+
+  try {
+    const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+    const user = userCredential.user;
+
+    // Create user profile in database
+    await db.ref(`users/${user.uid}`).set({
+      username: username,
+      email: email,
+      balance: 0,
+      registered_at: Date.now(),
+      telegram_id: telegram,
+      role: 'user',
+      last_online: Date.now()
+    });
+
+    showAlert('¡Cuenta creada exitosamente!', 'success');
+  } catch (error) {
+    console.error('Registration error:', error);
+    showAlert(error.message, 'danger');
+  }
+});
+
+// Login
+document.getElementById('login-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+
+  try {
+    await auth.signInWithEmailAndPassword(email, password);
+    showAlert('¡Inicio de sesión exitoso!', 'success');
+  } catch (error) {
+    console.error('Login error:', error);
+    showAlert('Email o contraseña incorrectos', 'danger');
+  }
+});
+
+// Logout
+function logout() {
+  if (confirm('¿Estás seguro de que quieres cerrar sesión?')) {
+    auth.signOut();
+  }
+}
+
+// Reset Password
+function resetPassword() {
+  const email = prompt('Ingresa tu email:');
+  if (email) {
+    auth.sendPasswordResetEmail(email)
+      .then(() => showAlert('Email de recuperación enviado', 'success'))
+      .catch(error => showAlert(error.message, 'danger'));
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// VIEW MANAGEMENT
+// ═══════════════════════════════════════════════════════════════════════════
+
+function showView(viewId) {
+  // Hide all views
+  document.querySelectorAll('.view').forEach(view => {
+    view.classList.add('hidden');
+  });
+
+  // Show target view
+  const targetView = document.getElementById(viewId);
+  if (targetView) {
+    targetView.classList.remove('hidden');
+  }
+
+  // Update active nav item
+  document.querySelectorAll('.nav-item').forEach(item => {
+    item.classList.remove('active');
+  });
+
+  // Find matching nav item
+  const navItems = document.querySelectorAll('.nav-item');
+  navItems.forEach(item => {
+    if (item.getAttribute('onclick')?.includes(viewId)) {
+      item.classList.add('active');
+    }
+  });
+
+  // Scroll to top
+  window.scrollTo(0, 0);
+}
+
+function scrollToSection(sectionId) {
+  const section = document.getElementById(sectionId);
+  if (section) {
+    section.scrollIntoView({ behavior: 'smooth' });
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DASHBOARD
+// ═══════════════════════════════════════════════════════════════════════════
+
+function updateDashboard() {
+  if (!userProfile) return;
+
+  // Update stats
+  document.getElementById('stat-balance').textContent = `$${userProfile.balance.toFixed(2)}`;
+  
+  const activeMachines = Object.values(userMachines).filter(m => m.status === 'active').length;
+  document.getElementById('stat-machines').textContent = activeMachines;
+
+  const totalPower = Object.values(userMachines)
+    .filter(m => m.status === 'active')
+    .reduce((sum, m) => sum + (m.current_power || 0), 0);
+  document.getElementById('stat-power').textContent = totalPower.toFixed(2);
+
+  // Calculate today's earnings
+  const todayEarnings = calculateTodayEarnings();
+  document.getElementById('stat-earnings').textContent = `$${todayEarnings.toFixed(2)}`;
+
+  // Load recent activity
+  loadRecentActivity();
+
+  // Draw earnings chart
+  drawEarningsChart();
+}
+
+function calculateTodayEarnings() {
+  const dayStart = Date.now() - (24 * 60 * 60 * 1000);
+  let total = 0;
+  
+  Object.values(userMachines).forEach(machine => {
+    if (machine.status === 'active' && machine.last_calc_time > dayStart) {
+      total += machine.accumulated_rewards || 0;
+    }
+  });
+
+  return total;
+}
+
+function loadRecentActivity() {
+  db.ref(`transactions`).orderByChild('uid').equalTo(currentUser.uid).limitToLast(5).once('value', (snap) => {
+    const container = document.getElementById('recent-activity');
+    const transactions = [];
+    
+    snap.forEach(child => {
+      transactions.push(child.val());
+    });
+
+    if (transactions.length === 0) {
+      container.innerHTML = '<p style="text-align: center; color: var(--text-secondary);">No hay actividad reciente</p>';
+      return;
+    }
+
+    transactions.reverse();
+    container.innerHTML = transactions.map(tx => `
+      <div class="transaction-item">
+        <div>
+          <strong>${tx.type.toUpperCase()}</strong><br>
+          <small style="color: var(--text-secondary);">${new Date(tx.timestamp).toLocaleString()}</small>
+        </div>
+        <div style="text-align: right;">
+          <strong>$${tx.amount.toFixed(2)}</strong><br>
+          <span class="transaction-status status-${tx.status}">${tx.status}</span>
+        </div>
+      </div>
+    `).join('');
+  });
+}
+
+function drawEarningsChart() {
+  const canvas = document.getElementById('earnings-chart');
+  if (!canvas) return;
+  
+  const ctx = canvas.getContext('2d');
+  canvas.width = canvas.offsetWidth;
+  canvas.height = 300;
+
+  // Demo data
+  const data = [12, 19, 15, 25, 22, 30, 28];
+  const labels = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+
+  const maxVal = Math.max(...data);
+  const padding = 40;
+  const chartWidth = canvas.width - padding * 2;
+  const chartHeight = canvas.height - padding * 2;
+
+  // Clear canvas
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Draw axes
+  ctx.strokeStyle = '#a0aec0';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(padding, padding);
+  ctx.lineTo(padding, canvas.height - padding);
+  ctx.lineTo(canvas.width - padding, canvas.height - padding);
+  ctx.stroke();
+
+  // Draw bars
+  const barWidth = chartWidth / data.length - 10;
+  data.forEach((value, i) => {
+    const barHeight = (value / maxVal) * chartHeight;
+    const x = padding + (chartWidth / data.length) * i + 5;
+    const y = canvas.height - padding - barHeight;
+
+    const gradient = ctx.createLinearGradient(0, y, 0, canvas.height - padding);
+    gradient.addColorStop(0, '#00d9ff');
+    gradient.addColorStop(1, '#0099cc');
+
+    ctx.fillStyle = gradient;
+    ctx.fillRect(x, y, barWidth, barHeight);
+
+    // Label
+    ctx.fillStyle = '#a0aec0';
+    ctx.font = '12px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(labels[i], x + barWidth / 2, canvas.height - padding + 20);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MARKETPLACE
+// ═══════════════════════════════════════════════════════════════════════════
+
+function loadMarketplace() {
+  loadMachinesGrid();
+  loadPartsGrid();
+}
+
+function loadMachinesGrid() {
+  const grid = document.getElementById('machines-grid');
+  if (!grid) return;
+
+  const machines = Object.values(machinesCatalog);
+  
+  if (machines.length === 0) {
+    grid.innerHTML = '<p style="text-align: center; color: var(--text-secondary); grid-column: 1/-1;">No hay máquinas disponibles</p>';
+    return;
+  }
+
+  grid.innerHTML = machines.map(machine => `
+    <div class="machine-card" onclick="showMachineDetails('${machine.id}', 'machine')">
+      <div class="machine-image">
+        ${machine.image_base64 ? 
+          `<img src="${machine.image_base64}" alt="${machine.name}">` :
+          `<span style="font-size: 4rem;">⛏️</span>`
+        }
+      </div>
+      <span class="machine-rarity rarity-${machine.rarity}">${machine.rarity}</span>
+      <h3>${machine.name}</h3>
+      <p style="color: var(--text-secondary); font-size: 14px; margin: 10px 0;">${machine.description}</p>
+      <div style="display: flex; justify-content: space-between; margin: 15px 0; font-size: 14px;">
+        <span>⚡ ${machine.base_power} poder</span>
+        <span>💡 $${machine.electricity_cost_per_hour}/h</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <strong style="font-size: 1.5rem; color: var(--primary);">$${machine.price}</strong>
+        <button class="btn btn-primary" onclick="event.stopPropagation(); purchaseItem('${machine.id}', 'machine')">Comprar</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function loadPartsGrid() {
+  const grid = document.getElementById('parts-grid');
+  if (!grid) return;
+
+  const parts = Object.values(partsCatalog);
+  
+  if (parts.length === 0) {
+    grid.innerHTML = '<p style="text-align: center; color: var(--text-secondary); grid-column: 1/-1;">No hay mejoras disponibles</p>';
+    return;
+  }
+
+  grid.innerHTML = parts.map(part => `
+    <div class="machine-card" onclick="showMachineDetails('${part.id}', 'part')">
+      <div class="machine-image">
+        ${part.image_base64 ? 
+          `<img src="${part.image_base64}" alt="${part.name}">` :
+          `<span style="font-size: 4rem;">🔧</span>`
+        }
+      </div>
+      <h3>${part.name}</h3>
+      <p style="color: var(--text-secondary); font-size: 14px; margin: 10px 0;">${part.description}</p>
+      <div style="margin: 15px 0; font-size: 14px;">
+        ${part.power_boost_percent > 0 ? `<div>⚡ +${part.power_boost_percent}% poder</div>` : ''}
+        ${part.electricity_reduction_percent > 0 ? `<div>💡 -${part.electricity_reduction_percent}% electricidad</div>` : ''}
+      </div>
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <strong style="font-size: 1.5rem; color: var(--success);">$${part.price}</strong>
+        <button class="btn btn-success" onclick="event.stopPropagation(); purchaseItem('${part.id}', 'part')">Comprar</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function showMachineDetails(itemId, type) {
+  const item = type === 'machine' ? machinesCatalog[itemId] : partsCatalog[itemId];
+  if (!item) return;
+
+  const modal = document.getElementById('machine-details-modal');
+  const content = document.getElementById('machine-details-content');
+
+  content.innerHTML = `
+    <div style="text-align: center;">
+      <div class="machine-image" style="margin: 0 auto;">
+        ${item.image_base64 ? 
+          `<img src="${item.image_base64}" alt="${item.name}">` :
+          `<span style="font-size: 6rem;">${type === 'machine' ? '⛏️' : '🔧'}</span>`
+        }
+      </div>
+      ${type === 'machine' ? `<span class="machine-rarity rarity-${item.rarity}">${item.rarity}</span>` : ''}
+      <h2>${item.name}</h2>
+      <p style="color: var(--text-secondary); margin: 20px 0;">${item.description}</p>
+      
+      ${type === 'machine' ? `
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-value">${item.base_power}</div>
+            <div class="stat-label">Poder Base</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">$${item.electricity_cost_per_hour}</div>
+            <div class="stat-label">Costo/Hora</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">${item.max_slots}</div>
+            <div class="stat-label">Slots Mejoras</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">${(item.depreciation_rate * 100).toFixed(1)}%</div>
+            <div class="stat-label">Depreciación</div>
+          </div>
+        </div>
+      ` : `
+        <div style="margin: 20px 0; text-align: left;">
+          ${item.power_boost_percent > 0 ? `<div>⚡ Aumenta poder: +${item.power_boost_percent}%</div>` : ''}
+          ${item.electricity_reduction_percent > 0 ? `<div>💡 Reduce electricidad: -${item.electricity_reduction_percent}%</div>` : ''}
+          <div style="margin-top: 10px; color: var(--text-secondary);">
+            <strong>Compatible con:</strong> ${item.applicable_to.join(', ')}
+          </div>
+        </div>
+      `}
+
+      <div style="margin-top: 30px;">
+        <strong style="font-size: 2rem; color: var(--primary);">$${item.price}</strong>
+      </div>
+
+      <button class="btn btn-primary" style="width: 100%; margin-top: 20px;" onclick="purchaseItem('${item.id}', '${type}'); closeModal('machine-details-modal')">
+        Comprar Ahora
+      </button>
+    </div>
+  `;
+
+  modal.classList.add('active');
+}
+
+function purchaseItem(itemId, type) {
+  const item = type === 'machine' ? machinesCatalog[itemId] : partsCatalog[itemId];
+  if (!item) return;
+
+  // Check balance
+  if (userProfile.balance < item.price) {
+    showAlert('Saldo insuficiente. Por favor deposita fondos.', 'danger');
+    return;
+  }
+
+  currentPurchaseItem = { item, type };
+
+  // Show purchase modal
+  const modal = document.getElementById('purchase-modal');
+  const details = document.getElementById('purchase-details');
+
+  details.innerHTML = `
+    <div style="text-align: center;">
+      <h3>${item.name}</h3>
+      <div style="margin: 20px 0;">
+        <div style="margin-bottom: 10px;">
+          <span style="color: var(--text-secondary);">Precio:</span>
+          <strong style="color: var(--primary); font-size: 1.5rem;"> $${item.price}</strong>
+        </div>
+        <div>
+          <span style="color: var(--text-secondary);">Balance actual:</span>
+          <strong> $${userProfile.balance.toFixed(2)}</strong>
+        </div>
+        <div style="margin-top: 10px;">
+          <span style="color: var(--text-secondary);">Balance después:</span>
+          <strong style="color: var(--success);"> $${(userProfile.balance - item.price).toFixed(2)}</strong>
+        </div>
+      </div>
+    </div>
+  `;
+
+  modal.classList.add('active');
+}
+
+async function confirmPurchase() {
+  if (!currentPurchaseItem) return;
+
+  const { item, type } = currentPurchaseItem;
+
+  try {
+    // Check if user has sufficient balance again (in case it changed)
+    if (userProfile.balance < item.price) {
+      showAlert('Saldo insuficiente. Por favor actualiza la página e intenta nuevamente.', 'danger');
+      closeModal('purchase-modal');
+      return;
+    }
+
+    // Create transaction ID
+    const txId = db.ref().push().key;
+    
+    // Create updates object
+    const updates = {};
+    
+    // Deduct balance
+    updates[`users/${currentUser.uid}/balance`] = userProfile.balance - item.price;
+
+    // Create machine instance if it's a machine purchase
+    if (type === 'machine') {
+      const instanceId = `${currentUser.uid}_${Date.now()}`;
+      updates[`user_machines/${currentUser.uid}/${instanceId}`] = {
+        instanceId: instanceId,
+        machine_id: item.id,
+        owner_uid: currentUser.uid,
+        purchase_time: Date.now(),
+        last_calc_time: Date.now(),
+        current_power: item.base_power,
+        status: 'active',
+        accumulated_rewards: 0,
+        attached_parts: []
+      };
+    }
+
+    // Create approved transaction
+    updates[`transactions/${txId}`] = {
+      txid: txId,
+      uid: currentUser.uid,
+      type: 'purchase',
+      amount: item.price,
+      status: 'approved',
+      timestamp: Date.now(),
+      meta: {
+        item_type: type,
+        item_id: item.id,
+        item_name: item.name
+      }
+    };
+
+    // Apply all updates atomically
+    await db.ref().update(updates);
+
+    closeModal('purchase-modal');
+    showAlert('¡Compra realizada con éxito! La máquina ha sido añadida a tu granja.', 'success');
+
+    // Reload data
+    await loadUserData();
+
+  } catch (error) {
+    console.error('Purchase error:', error);
+    showAlert('Error al procesar la compra: ' + error.message, 'danger');
+  }
+}
+
+async function approvePurchase(txId, item, type) {
+  const updates = {};
+
+  // Deduct balance
+  updates[`users/${currentUser.uid}/balance`] = userProfile.balance - item.price;
+
+  // Create machine instance
+  if (type === 'machine') {
+    const instanceId = `${currentUser.uid}_${Date.now()}`;
+    updates[`user_machines/${currentUser.uid}/${instanceId}`] = {
+      instanceId: instanceId,
+      machine_id: item.id,
+      owner_uid: currentUser.uid,
+      purchase_time: Date.now(),
+      last_calc_time: Date.now(),
+      current_power: item.base_power,
+      status: 'active',
+      accumulated_rewards: 0,
+      attached_parts: []
+    };
+  }
+
+  // Create approved transaction
+  updates[`transactions/${txId}`] = {
+    txid: txId,
+    uid: currentUser.uid,
+    type: 'purchase',
+    amount: item.price,
+    status: 'approved',
+    timestamp: Date.now(),
+    meta: {
+      item_type: type,
+      item_id: item.id,
+      item_name: item.name
+    }
+  };
+
+  // Remove pending
+  updates[`pending_transactions/${txId}`] = null;
+
+  await db.ref().update(updates);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FARM / MINING
+// ═══════════════════════════════════════════════════════════════════════════
+
+function loadFarm() {
+  loadUserMachinesList();
+  init3DFarm();
+}
+
+function loadUserMachinesList() {
+  const container = document.getElementById('user-machines-list');
+  if (!container) return;
+
+  const machines = Object.values(userMachines);
+
+  if (machines.length === 0) {
+    container.innerHTML = '<p style="text-align: center; color: var(--text-secondary);">No tienes máquinas aún. ¡Compra tu primera máquina en el mercado!</p>';
+    return;
+  }
+
+  container.innerHTML = machines.map(machine => {
+    const template = machinesCatalog[machine.machine_id];
+    if (!template) return '';
+
+    // Calculate current accumulated
+    const now = Date.now();
+    const elapsed = (now - machine.last_calc_time) / 1000 / 3600;
+    const miningRate = settings?.mining_rate || 1;
+    const grossMined = machine.current_power * miningRate * elapsed;
+    const electricityCost = template.electricity_cost_per_hour * elapsed * (settings?.electricity_multiplier || 1);
+    const netGain = grossMined - electricityCost;
+    const currentRewards = (machine.accumulated_rewards || 0) + netGain;
+
+    return `
+      <div class="user-machine-item">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 10px;">
+          <div>
+            <strong>${template.name}</strong>
+            <span class="machine-status status-${machine.status}">${machine.status}</span>
+          </div>
+          <button class="btn btn-success btn-sm" onclick="claimRewards('${machine.instanceId}')">
+            💰 Reclamar
+          </button>
+        </div>
+        
+        <div class="machine-image" style="height: 150px; margin-bottom: 10px;">
+          ${template.image_base64 ? 
+            `<img src="${template.image_base64}" alt="${template.name}">` :
+            `<span style="font-size: 3rem;">⛏️</span>`
+          }
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; font-size: 14px;">
+          <div>⚡ Poder: ${machine.current_power}</div>
+          <div>💰 Acumulado: $${currentRewards.toFixed(4)}</div>
+          <div>💡 Costo/h: $${template.electricity_cost_per_hour}</div>
+          <div>🔧 Mejoras: ${machine.attached_parts?.length || 0}/${template.max_slots}</div>
+        </div>
+
+        <div style="margin-top: 10px; display: flex; gap: 10px; flex-wrap: wrap;">
+          ${machine.status === 'active' ? 
+            `<button class="btn btn-secondary btn-sm" onclick="pauseMachine('${machine.instanceId}')">⏸️ Pausar</button>` :
+            `<button class="btn btn-primary btn-sm" onclick="resumeMachine('${machine.instanceId}')">▶️ Reanudar</button>`
+          }
+          <button class="btn btn-secondary btn-sm" onclick="manageParts('${machine.instanceId}')">🔧 Mejoras</button>
+          <button class="btn btn-danger btn-sm" onclick="sellMachine('${machine.instanceId}')">🗑️ Vender</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+async function claimRewards(instanceId) {
+  const machine = userMachines[instanceId];
+  if (!machine) return;
+
+  const template = machinesCatalog[machine.machine_id];
+  if (!template) return;
+
+  try {
+    // Calculate rewards
+    const now = Date.now();
+    const elapsed = (now - machine.last_calc_time) / 1000 / 3600;
+    const miningRate = settings?.mining_rate || 1;
+    const grossMined = machine.current_power * miningRate * elapsed;
+    const electricityCost = template.electricity_cost_per_hour * elapsed * (settings?.electricity_multiplier || 1);
+    const netGain = grossMined - electricityCost;
+    const totalRewards = (machine.accumulated_rewards || 0) + netGain;
+
+    if (totalRewards <= 0) {
+      showAlert('No hay recompensas para reclamar', 'warning');
+      return;
+    }
+
+    // Update machine and user balance
+    const updates = {};
+    updates[`user_machines/${currentUser.uid}/${instanceId}/accumulated_rewards`] = 0;
+    updates[`user_machines/${currentUser.uid}/${instanceId}/last_calc_time`] = now;
+    updates[`users/${currentUser.uid}/balance`] = userProfile.balance + totalRewards;
+
+    // Create transaction
+    const txRef = db.ref('transactions').push();
+    updates[`transactions/${txRef.key}`] = {
+      txid: txRef.key,
+      uid: currentUser.uid,
+      type: 'claim',
+      amount: totalRewards,
+      status: 'approved',
+      timestamp: now,
+      meta: {
+        machine_id: machine.machine_id,
+        instance_id: instanceId
+      }
+    };
+
+    await db.ref().update(updates);
+
+    showAlert(`¡Reclamaste $${totalRewards.toFixed(4)}!`, 'success');
+    await loadUserData();
+
+  } catch (error) {
+    console.error('Claim error:', error);
+    showAlert('Error al reclamar recompensas', 'danger');
+  }
+}
+
+async function claimAllRewards() {
+  const activeMachines = Object.values(userMachines).filter(m => m.status === 'active');
+  
+  if (activeMachines.length === 0) {
+    showAlert('No tienes máquinas activas', 'warning');
+    return;
+  }
+
+  for (const machine of activeMachines) {
+    await claimRewards(machine.instanceId);
+  }
+}
+
+async function pauseMachine(instanceId) {
+  try {
+    await db.ref(`user_machines/${currentUser.uid}/${instanceId}/status`).set('paused');
+    showAlert('Máquina pausada', 'success');
+    await loadUserData();
+  } catch (error) {
+    console.error('Pause error:', error);
+    showAlert('Error al pausar máquina', 'danger');
+  }
+}
+
+async function resumeMachine(instanceId) {
+  try {
+    await db.ref(`user_machines/${currentUser.uid}/${instanceId}/status`).set('active');
+    showAlert('Máquina reactivada', 'success');
+    await loadUserData();
+  } catch (error) {
+    console.error('Resume error:', error);
+    showAlert('Error al reactivar máquina', 'danger');
+  }
+}
+
+async function pauseAllMachines() {
+  const updates = {};
+  Object.keys(userMachines).forEach(id => {
+    updates[`user_machines/${currentUser.uid}/${id}/status`] = 'paused';
+  });
+  
+  try {
+    await db.ref().update(updates);
+    showAlert('Todas las máquinas pausadas', 'success');
+    await loadUserData();
+  } catch (error) {
+    showAlert('Error', 'danger');
+  }
+}
+
+async function resumeAllMachines() {
+  const updates = {};
+  Object.keys(userMachines).forEach(id => {
+    updates[`user_machines/${currentUser.uid}/${id}/status`] = 'active';
+  });
+  
+  try {
+    await db.ref().update(updates);
+    showAlert('Todas las máquinas reactivadas', 'success');
+    await loadUserData();
+  } catch (error) {
+    showAlert('Error', 'danger');
+  }
+}
+
+async function manageParts(instanceId) {
+  const machine = userMachines[instanceId];
+  if (!machine) {
+    showAlert('Máquina no encontrada', 'danger');
+    return;
+  }
+
+  const template = machinesCatalog[machine.machine_id];
+  if (!template) {
+    showAlert('Plantilla de máquina no encontrada', 'danger');
+    return;
+  }
+
+  // Calcular slots disponibles
+  const maxSlots = template.max_slots || 0;
+  const usedSlots = machine.attached_parts?.length || 0;
+  const availableSlots = maxSlots - usedSlots;
+
+  // Actualizar información de la máquina
+  const machineInfo = document.getElementById('machine-parts-info');
+  machineInfo.innerHTML = `
+    <div class="card" style="margin-bottom: 15px; padding: 15px;">
+      <h3>${template.name}</h3>
+      <p>Slots de mejoras: ${usedSlots}/${maxSlots}</p>
+      <p>Poder actual: ${machine.current_power} (Base: ${template.base_power})</p>
+      ${availableSlots === 0 ? 
+        '<p class="text-warning">¡No tienes slots disponibles para más mejoras!</p>' : 
+        `<p>Puedes agregar ${availableSlots} mejora${availableSlots > 1 ? 's' : ''} más.</p>`
+      }
+    </div>
+  `;
+
+  // Cargar mejoras disponibles
+  const availablePartsContainer = document.getElementById('available-parts');
+  const parts = Object.values(partsCatalog);
+  
+  if (parts.length === 0) {
+    availablePartsContainer.innerHTML = '<p>No hay mejoras disponibles en este momento.</p>';
+  } else {
+    availablePartsContainer.innerHTML = parts.map(part => `
+      <div class="card" style="padding: 15px;">
+        <h4>${part.name}</h4>
+        <p style="font-size: 0.9em; color: var(--text-secondary);">${part.description}</p>
+        <div style="margin: 10px 0;">
+          ${part.power_boost_percent > 0 ? 
+            `<div>⚡ +${part.power_boost_percent}% poder</div>` : ''
+          }
+          ${part.electricity_reduction_percent > 0 ? 
+            `<div>💡 -${part.electricity_reduction_percent}% electricidad</div>` : ''
+          }
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <strong>$${part.price}</strong>
+          <button class="btn btn-primary btn-sm" 
+                  onclick="attachPartToMachine('${instanceId}', '${part.id}')"
+                  ${availableSlots === 0 || userProfile.balance < part.price ? 'disabled' : ''}>
+            Agregar
+          </button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // Mostrar el modal
+  const modal = document.getElementById('manage-parts-modal');
+  modal.classList.add('active');
+  currentMachineInstance = instanceId;
+}
+
+async function attachPartToMachine(instanceId, partId) {
+  try {
+    const machine = userMachines[instanceId];
+    const template = machinesCatalog[machine.machine_id];
+    const part = partsCatalog[partId];
+
+    if (!machine || !template || !part) {
+      showAlert('Error al encontrar la máquina o la mejora', 'danger');
+      return;
+    }
+
+    // Verificar saldo
+    if (userProfile.balance < part.price) {
+      showAlert('Saldo insuficiente para comprar esta mejora', 'danger');
+      return;
+    }
+
+    // Verificar slots disponibles
+    const maxSlots = template.max_slots || 0;
+    const usedSlots = machine.attached_parts?.length || 0;
+    
+    if (usedSlots >= maxSlots) {
+      showAlert('No hay slots disponibles para más mejoras', 'warning');
+      return;
+    }
+
+    // Crear copia del array de partes o inicializarlo si no existe
+    const updatedParts = [...(machine.attached_parts || []), partId];
+    
+    // Calcular nuevo poder
+    const powerBoost = updatedParts.reduce((total, partId) => {
+      const p = partsCatalog[partId];
+      return total + (p?.power_boost_percent || 0);
+    }, 0);
+    
+    const newPower = Math.round(template.base_power * (1 + powerBoost / 100));
+
+    // Actualizar la base de datos
+    const updates = {};
+    const userRef = `users/${currentUser.uid}`;
+    const machineRef = `user_machines/${currentUser.uid}/${instanceId}`;
+    
+    // Actualizar saldo del usuario
+    updates[`${userRef}/balance`] = userProfile.balance - part.price;
+    
+    // Actualizar la máquina con la nueva parte y poder
+    updates[`${machineRef}/attached_parts`] = updatedParts;
+    updates[`${machineRef}/current_power`] = newPower;
+    
+    // Crear transacción
+    const txId = db.ref().push().key;
+    updates[`transactions/${txId}`] = {
+      txid: txId,
+      uid: currentUser.uid,
+      type: 'part_purchase',
+      amount: part.price,
+      status: 'approved',
+      timestamp: Date.now(),
+      meta: {
+        item_type: 'part',
+        item_id: part.id,
+        item_name: part.name,
+        machine_id: instanceId,
+        machine_name: template.name
+      }
+    };
+
+    // Aplicar todas las actualizaciones atómicamente
+    await db.ref().update(updates);
+    
+    // Actualizar la interfaz
+    showAlert(`¡${part.name} añadida a tu máquina!`, 'success');
+    
+    // Recargar datos del usuario
+    await loadUserData();
+    
+    // Actualizar la vista de mejoras
+    if (currentMachineInstance === instanceId) {
+      manageParts(instanceId);
+    }
+    
+  } catch (error) {
+    console.error('Error al adjuntar mejora:', error);
+    showAlert('Error al agregar la mejora: ' + error.message, 'danger');
+  }
+}
+
+function sellMachine(instanceId) {
+  if (!confirm('¿Estás seguro de que quieres vender esta máquina?')) return;
+  showAlert('Función de venta próximamente', 'info');
+}
+
+function toggleSound() {
+  soundEnabled = !soundEnabled;
+  showAlert(soundEnabled ? '🔊 Sonido activado' : '🔇 Sonido desactivado', 'info');
+}
+
+function toggle3D() {
+  render3D = !render3D;
+  showAlert(render3D ? '🎮 3D activado' : '📱 Modo rendimiento', 'info');
+  if (render3D) {
+    init3DFarm();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 3D VISUALIZATION
+// ═══════════════════════════════════════════════════════════════════════════
+
+function init3DHero() {
+  const canvas = document.getElementById('hero-canvas');
+  if (!canvas) return;
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+  const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+  
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  camera.position.z = 5;
+
+  // Create animated particles
+  const geometry = new THREE.BufferGeometry();
+  const particles = 500;
+  const positions = new Float32Array(particles * 3);
+
+  for (let i = 0; i < particles * 3; i++) {
+    positions[i] = (Math.random() - 0.5) * 10;
+  }
+
+  geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  const material = new THREE.PointsMaterial({ color: 0x00d9ff, size: 0.05 });
+  const points = new THREE.Points(geometry, material);
+  scene.add(points);
+
+  // Animation loop
+  function animate() {
+    requestAnimationFrame(animate);
+    points.rotation.x += 0.0005;
+    points.rotation.y += 0.001;
+    renderer.render(scene, camera);
+  }
+
+  animate();
+
+  // Handle resize
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+}
+
+function init3DFarm() {
+  if (!render3D) return;
+
+  const container = document.getElementById('farm-3d-container');
+  if (!container) return;
+
+  const canvas = document.getElementById('farm-canvas');
+  if (!canvas) return;
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(75, container.offsetWidth / 300, 0.1, 1000);
+  const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+  
+  renderer.setSize(container.offsetWidth, 300);
+  camera.position.z = 5;
+
+  // Add cubes for each machine
+  const machineCount = Object.keys(userMachines).length;
+  const cubes = [];
+
+  for (let i = 0; i < machineCount; i++) {
+    const geometry = new THREE.BoxGeometry(1, 1, 1);
+    const material = new THREE.MeshPhongMaterial({ color: 0x00d9ff, emissive: 0x0099cc });
+    const cube = new THREE.Mesh(geometry, material);
+    
+    cube.position.x = (i - machineCount / 2) * 2;
+    scene.add(cube);
+    cubes.push(cube);
+  }
+
+  // Lighting
+  const light = new THREE.PointLight(0xffffff, 1, 100);
+  light.position.set(0, 0, 10);
+  scene.add(light);
+
+  const ambientLight = new THREE.AmbientLight(0x404040);
+  scene.add(ambientLight);
+
+  // Animation
+  function animate() {
+    requestAnimationFrame(animate);
+    cubes.forEach(cube => {
+      cube.rotation.x += 0.01;
+      cube.rotation.y += 0.01;
+    });
+    renderer.render(scene, camera);
+  }
+
+  animate();
+}
+
+// Initialize hero 3D on page load
+init3DHero();
+
+// ═══════════════════════════════════════════════════════════════════════════
+// WALLET
+// ═══════════════════════════════════════════════════════════════════════════
+
+function loadWallet() {
+  document.getElementById('wallet-balance').textContent = `$${userProfile.balance.toFixed(2)}`;
+  loadTransactions();
+  loadDeposits();
+  loadWithdrawals();
+}
+
+function loadTransactions() {
+  db.ref('transactions').orderByChild('uid').equalTo(currentUser.uid).limitToLast(20).once('value', (snap) => {
+    const container = document.getElementById('transactions-list');
+    const transactions = [];
+    
+    snap.forEach(child => {
+      transactions.push(child.val());
+    });
+
+    if (transactions.length === 0) {
+      container.innerHTML = '<p style="text-align: center; color: var(--text-secondary);">No hay transacciones</p>';
+      return;
+    }
+
+    transactions.reverse();
+    container.innerHTML = transactions.map(tx => `
+      <div class="transaction-item">
+        <div>
+          <strong>${tx.type.toUpperCase()}</strong><br>
+          <small style="color: var(--text-secondary);">${new Date(tx.timestamp).toLocaleString()}</small>
+        </div>
+        <div style="text-align: right;">
+          <strong style="color: ${tx.type === 'deposit' || tx.type === 'claim' ? 'var(--success)' : 'var(--danger)'}">
+            ${tx.type === 'deposit' || tx.type === 'claim' ? '+' : '-'}$${tx.amount.toFixed(2)}
+          </strong><br>
+          <span class="transaction-status status-${tx.status}">${tx.status}</span>
+        </div>
+      </div>
+    `).join('');
+  });
+}
+
+function loadDeposits() {
+  db.ref('deposits').orderByChild('uid').equalTo(currentUser.uid).limitToLast(10).once('value', (snap) => {
+    const container = document.getElementById('deposits-list');
+    const deposits = [];
+    
+    snap.forEach(child => {
+      deposits.push(child.val());
+    });
+
+    if (deposits.length === 0) {
+      container.innerHTML = '<p style="text-align: center; color: var(--text-secondary);">No hay depósitos</p>';
+      return;
+    }
+
+    deposits.reverse();
+    container.innerHTML = deposits.map(dep => `
+      <div class="transaction-item">
+        <div>
+          <strong>${dep.amount} ${dep.currency}</strong><br>
+          <small style="color: var(--text-secondary);">${new Date(dep.timestamp).toLocaleString()}</small><br>
+          <small style="color: var(--text-secondary);">TX: ${dep.txid?.substring(0, 20)}...</small>
+        </div>
+        <div style="text-align: right;">
+          <span class="transaction-status status-${dep.status}">${dep.status}</span>
+        </div>
+      </div>
+    `).join('');
+  });
+}
+
+function loadWithdrawals() {
+  db.ref('withdrawals').orderByChild('uid').equalTo(currentUser.uid).limitToLast(10).once('value', (snap) => {
+    const container = document.getElementById('withdrawals-list');
+    const withdrawals = [];
+    
+    snap.forEach(child => {
+      withdrawals.push(child.val());
+    });
+
+    if (withdrawals.length === 0) {
+      container.innerHTML = '<p style="text-align: center; color: var(--text-secondary);">No hay retiros</p>';
+      return;
+    }
+
+    withdrawals.reverse();
+    container.innerHTML = withdrawals.map(wd => `
+      <div class="transaction-item">
+        <div>
+          <strong>${wd.amount} ${wd.currency}</strong><br>
+          <small style="color: var(--text-secondary);">${new Date(wd.timestamp).toLocaleString()}</small><br>
+          <small style="color: var(--text-secondary);">A: ${wd.address?.substring(0, 20)}...</small>
+        </div>
+        <div style="text-align: right;">
+          <span class="transaction-status status-${wd.status}">${wd.status}</span>
+        </div>
+      </div>
+    `).join('');
+  });
+}
+
+function showDepositModal() {
+  const modal = document.getElementById('deposit-modal');
+  
+  // Load supported currencies that have deposit addresses configured
+  const currencySelect = document.getElementById('deposit-currency');
+  const currencies = settings?.supported_currencies || [];
+  const depositAddresses = settings?.deposit_addresses || {};
+  
+  // Filter only currencies that have deposit addresses configured
+  const configuredCurrencies = currencies.filter(c => depositAddresses[c]);
+  
+  if (configuredCurrencies.length === 0) {
+    currencySelect.innerHTML = '<option value="">No hay monedas configuradas. Contacta al administrador.</option>';
+    currencySelect.disabled = true;
+  } else {
+    currencySelect.disabled = false;
+    currencySelect.innerHTML = '<option value="">Selecciona una moneda</option>' + 
+      configuredCurrencies.map(c => `<option value="${c}">${c}</option>`).join('');
+  }
+
+  modal.classList.add('active');
+}
+
+function updateDepositAddress() {
+  const currency = document.getElementById('deposit-currency').value;
+  const addressInput = document.getElementById('deposit-address');
+  
+  if (currency && settings?.deposit_addresses && settings.deposit_addresses[currency]) {
+    addressInput.value = settings.deposit_addresses[currency];
+  } else {
+    addressInput.value = '';
+  }
+}
+
+document.getElementById('deposit-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  const currency = document.getElementById('deposit-currency').value;
+  const amount = parseFloat(document.getElementById('deposit-amount').value);
+  const txid = document.getElementById('deposit-txid').value.trim();
+  const proofFile = document.getElementById('deposit-proof').files[0];
+
+  if (!proofFile) {
+    showAlert('Debes subir un comprobante', 'warning');
+    return;
+  }
+
+  try {
+    // Convert image to base64
+    const proofBase64 = await fileToBase64(proofFile);
+
+    // Create deposit request
+    const depositRef = db.ref('deposits').push();
+    const depositId = depositRef.key;
+
+    await depositRef.set({
+      depositId: depositId,
+      uid: currentUser.uid,
+      currency: currency,
+      amount: amount,
+      txid: txid,
+      proof_base64: proofBase64,
+      status: 'pending',
+      timestamp: Date.now()
+    });
+
+    closeModal('deposit-modal');
+    showAlert('Depósito enviado. Esperando aprobación del admin.', 'success');
+    
+    document.getElementById('deposit-form').reset();
+    document.getElementById('deposit-preview').innerHTML = '<span style="color: var(--text-secondary);">Selecciona una imagen</span>';
+
+  } catch (error) {
+    console.error('Deposit error:', error);
+    showAlert('Error al enviar depósito', 'danger');
+  }
+});
+
+function showWithdrawModal() {
+  const modal = document.getElementById('withdraw-modal');
+  
+  // Load supported currencies that have minimum withdraw configured
+  const currencySelect = document.getElementById('withdraw-currency');
+  const currencies = settings?.supported_currencies || [];
+  const minWithdraw = settings?.min_withdraw || {};
+  
+  // Filter only currencies that have minimum withdraw configured
+  const configuredCurrencies = currencies.filter(c => minWithdraw[c] !== undefined);
+  
+  if (configuredCurrencies.length === 0) {
+    currencySelect.innerHTML = '<option value="">No hay monedas configuradas. Contacta al administrador.</option>';
+    currencySelect.disabled = true;
+  } else {
+    currencySelect.disabled = false;
+    currencySelect.innerHTML = '<option value="">Selecciona una moneda</option>' + 
+      configuredCurrencies.map(c => `<option value="${c}">${c}</option>`).join('');
+  }
+
+  modal.classList.add('active');
+}
+
+function updateMinWithdraw() {
+  const currency = document.getElementById('withdraw-currency').value;
+  const minText = document.getElementById('min-withdraw-text');
+  
+  if (currency && settings?.min_withdraw && settings.min_withdraw[currency] !== undefined) {
+    const min = settings.min_withdraw[currency];
+    minText.textContent = `Mínimo: ${min} ${currency}`;
+  } else {
+    minText.textContent = '';
+  }
+}
+
+document.getElementById('withdraw-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  const currency = document.getElementById('withdraw-currency').value;
+  const amount = parseFloat(document.getElementById('withdraw-amount').value);
+  const address = document.getElementById('withdraw-address').value.trim();
+
+  // Validate minimum
+  const minWithdraw = settings?.min_withdraw?.[currency] || 0;
+  if (amount < minWithdraw) {
+    showAlert(`El monto mínimo de retiro es ${minWithdraw} ${currency}`, 'warning');
+    return;
+  }
+
+  // Validate balance
+  if (amount > userProfile.balance) {
+    showAlert('Saldo insuficiente', 'danger');
+    return;
+  }
+
+  try {
+    // Create withdrawal request
+    const withdrawalRef = db.ref('withdrawals').push();
+    const withdrawalId = withdrawalRef.key;
+
+    await withdrawalRef.set({
+      withdrawalId: withdrawalId,
+      uid: currentUser.uid,
+      currency: currency,
+      amount: amount,
+      address: address,
+      status: 'pending',
+      timestamp: Date.now()
+    });
+
+    closeModal('withdraw-modal');
+    showAlert('Retiro solicitado. Esperando aprobación del admin.', 'success');
+    
+    document.getElementById('withdraw-form').reset();
+
+  } catch (error) {
+    console.error('Withdrawal error:', error);
+    showAlert('Error al solicitar retiro', 'danger');
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SUPPORT
+// ═══════════════════════════════════════════════════════════════════════════
+
+function loadSupport() {
+  const container = document.getElementById('contact-channels');
+  if (!container || !settings) return;
+
+  const channels = [];
+  
+  if (settings.contact_telegram) {
+    channels.push(`
+      <a href="https://t.me/${settings.contact_telegram.replace('@', '')}" target="_blank" class="btn btn-primary" style="width: 100%;">
+        📱 Telegram: ${settings.contact_telegram}
+      </a>
+    `);
+  }
+  
+  if (settings.contact_whatsapp) {
+    channels.push(`
+      <a href="https://wa.me/${settings.contact_whatsapp.replace(/[^0-9]/g, '')}" target="_blank" class="btn btn-success" style="width: 100%;">
+        💬 WhatsApp: ${settings.contact_whatsapp}
+      </a>
+    `);
+  }
+  
+  if (settings.contact_email) {
+    channels.push(`
+      <a href="mailto:${settings.contact_email}" class="btn btn-secondary" style="width: 100%;">
+        📧 Email: ${settings.contact_email}
+      </a>
+    `);
+  }
+
+  container.innerHTML = channels.join('');
+}
+
+document.getElementById('support-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  const subject = document.getElementById('support-subject').value.trim();
+  const message = document.getElementById('support-message').value.trim();
+
+  try {
+    const ticketRef = db.ref('support_tickets').push();
+    
+    await ticketRef.set({
+      ticketId: ticketRef.key,
+      uid: currentUser.uid,
+      username: userProfile.username,
+      email: userProfile.email,
+      subject: subject,
+      message: message,
+      status: 'open',
+      timestamp: Date.now()
+    });
+
+    showAlert('Mensaje enviado. Te responderemos pronto.', 'success');
+    document.getElementById('support-form').reset();
+
+  } catch (error) {
+    console.error('Support error:', error);
+    showAlert('Error al enviar mensaje', 'danger');
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PROFILE
+// ═══════════════════════════════════════════════════════════════════════════
+
+function loadProfile() {
+  const container = document.getElementById('profile-info');
+  if (!container || !userProfile) return;
+
+  container.innerHTML = `
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+      <div>
+        <strong>Usuario:</strong><br>
+        <span style="color: var(--text-secondary);">${userProfile.username}</span>
+      </div>
+      <div>
+        <strong>Email:</strong><br>
+        <span style="color: var(--text-secondary);">${userProfile.email}</span>
+      </div>
+      <div>
+        <strong>Telegram:</strong><br>
+        <span style="color: var(--text-secondary);">${userProfile.telegram_id || 'No configurado'}</span>
+      </div>
+      <div>
+        <strong>Registrado:</strong><br>
+        <span style="color: var(--text-secondary);">${new Date(userProfile.registered_at).toLocaleDateString()}</span>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('profile-username').value = userProfile.username;
+  document.getElementById('profile-telegram').value = userProfile.telegram_id || '';
+}
+
+async function updateProfile() {
+  const username = document.getElementById('profile-username').value.trim();
+  const telegram = document.getElementById('profile-telegram').value.trim();
+
+  try {
+    await db.ref(`users/${currentUser.uid}`).update({
+      username: username,
+      telegram_id: telegram
+    });
+
+    showAlert('Perfil actualizado', 'success');
+    await loadUserData();
+
+  } catch (error) {
+    console.error('Update error:', error);
+    showAlert('Error al actualizar perfil', 'danger');
+  }
+}
+
+function changePassword() {
+  const newPassword = prompt('Ingresa tu nueva contraseña (mínimo 6 caracteres):');
+  if (newPassword && newPassword.length >= 6) {
+    currentUser.updatePassword(newPassword)
+      .then(() => showAlert('Contraseña actualizada', 'success'))
+      .catch(error => showAlert(error.message, 'danger'));
+  } else if (newPassword) {
+    showAlert('La contraseña debe tener al menos 6 caracteres', 'warning');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// UTILITY FUNCTIONS
+// ═══════════════════════════════════════════════════════════════════════════
+
+function showAlert(message, type = 'info') {
+  const alertDiv = document.createElement('div');
+  alertDiv.className = `alert alert-${type}`;
+  alertDiv.textContent = message;
+  alertDiv.style.position = 'fixed';
+  alertDiv.style.top = '20px';
+  alertDiv.style.right = '20px';
+  alertDiv.style.zIndex = '9999';
+  alertDiv.style.maxWidth = '400px';
+  
+  document.body.appendChild(alertDiv);
+  
+  setTimeout(() => {
+    alertDiv.remove();
+  }, 5000);
+}
+
+function closeModal(modalId) {
+  const modal = document.getElementById(modalId);
+  if (modal) {
+    modal.classList.remove('active');
+  }
+}
+
+function switchTab(tabId) {
+  // Hide all tab contents
+  document.querySelectorAll('.tab-content').forEach(content => {
+    content.classList.remove('active');
+  });
+  
+  // Remove active from all tabs
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.classList.remove('active');
+  });
+  
+  // Show selected tab content
+  const targetContent = document.getElementById(tabId);
+  if (targetContent) {
+    targetContent.classList.add('active');
+  }
+  
+  // Activate corresponding tab button
+  const tabs = document.querySelectorAll('.tab');
+  tabs.forEach(tab => {
+    if (tab.getAttribute('onclick')?.includes(tabId)) {
+      tab.classList.add('active');
+    }
+  });
+}
+
+function copyToClipboard(inputId) {
+  const input = document.getElementById(inputId);
+  if (input) {
+    input.select();
+    document.execCommand('copy');
+    showAlert('Copiado al portapapeles', 'success');
+  }
+}
+
+function previewImage(inputId, previewId) {
+  const input = document.getElementById(inputId);
+  const preview = document.getElementById(previewId);
+  
+  if (input.files && input.files[0]) {
+    const reader = new FileReader();
+    
+    reader.onload = function(e) {
+      preview.innerHTML = `<img src="${e.target.result}" alt="Preview">`;
+    };
+    
+    reader.readAsDataURL(input.files[0]);
+  }
+}
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+</script>
+
+</body>
+</html>
