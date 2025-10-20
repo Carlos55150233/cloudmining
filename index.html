@@ -1481,19 +1481,26 @@ document.getElementById('register-form').addEventListener('submit', async (e) =>
   }
 
   try {
+    // 1) Crear cuenta Auth
     const userCredential = await auth.createUserWithEmailAndPassword(email, password);
     const user = userCredential.user;
 
-    // Create user profile in database
-    await db.ref(`users/${user.uid}`).set({
-      username: username,
-      email: email,
-      balance: 0,
-      registered_at: Date.now(),
-      telegram_id: telegram,
-      role: 'user',
-      last_online: Date.now()
-    });
+    // 2) Crear perfil en DB (sin last_online para evitar validación estricta). Añadir mec_balance:0
+    try {
+      await db.ref(`users/${user.uid}`).set({
+        username: username,
+        email: email,
+        balance: 0,
+        mec_balance: 0,
+        registered_at: Date.now(),
+        telegram_id: telegram,
+        role: 'user'
+      });
+    } catch (dbErr) {
+      console.warn('User profile write warning:', dbErr);
+      // No bloqueamos el registro si el perfil falla en escribirse por reglas; el Auth ya fue creado
+      showAlert('Cuenta creada. Perfil no guardado completamente (contacta al admin).', 'warning');
+    }
 
     showAlert('¡Cuenta creada exitosamente!', 'success');
   } catch (error) {
