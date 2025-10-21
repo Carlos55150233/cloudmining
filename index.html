@@ -1693,7 +1693,9 @@ function showView(viewId) {
     } else if (viewId === 'dashboard-view') {
       updateDashboard();
     } else if (viewId === 'referrals-view') {
-      loadReferrals();
+      if (typeof loadReferrals === 'function') {
+        loadReferrals();
+      }
     }
   } catch (e) {
     console.warn('View load error:', e);
@@ -2978,7 +2980,13 @@ function init3DFarm() {
 
 // Initialize hero 3D on page load
 init3DHero();
-parseRefFromURL();
+if (typeof parseRefFromURL === 'function') {
+  try { parseRefFromURL(); } catch {}
+} else {
+  window.addEventListener('DOMContentLoaded', () => {
+    try { typeof parseRefFromURL === 'function' && parseRefFromURL(); } catch {}
+  });
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // WALLET
