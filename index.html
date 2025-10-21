@@ -1700,6 +1700,135 @@ function showView(viewId) {
   }
 }
 
+// ──────────────────────────────────────────────────────────────────────────
+// REFERRALS HELPERS (Web deep link + link UI)
+// ──────────────────────────────────────────────────────────────────────────
+
+function parseRefFromURL() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get('ref');
+    if (ref && typeof ref === 'string') {
+      localStorage.setItem('pending_ref', ref);
+      pendingReferrer = ref;
+    } else {
+      pendingReferrer = localStorage.getItem('pending_ref');
+    }
+  } catch (e) {
+    console.warn('parseRefFromURL error:', e);
+  }
+}
+
+async function applyPendingReferrer(newUid) {
+  try {
+    parseRefFromURL();
+    const refUid = pendingReferrer;
+    if (!refUid || refUid === newUid) return;
+    const userSnap = await db.ref(`users/${newUid}/referrer_uid`).once('value');
+    if (userSnap.exists()) return;
+    const updates = {};
+    updates[`users/${newUid}/referrer_uid`] = refUid;
+    updates[`referrals/${refUid}/${newUid}`] = { joined_at: Date.now(), via: 'web' };
+    await db.ref().update(updates);
+  } catch (e) {
+    console.warn('applyPendingReferrer error:', e);
+  }
+}
+
+function initReferralLink() {
+  if (!currentUser) return;
+  const linkInput = document.getElementById('referral-link');
+  if (!linkInput) return;
+  const code = `ref_${currentUser.uid}`;
+  const tg = `https://t.me/${TELEGRAM_BOT_USERNAME}?start=${code}`;
+  linkInput.value = tg;
+  const info = document.getElementById('referral-info');
+  if (info) {
+    try {
+      const webRef = new URL(window.location.href);
+      webRef.searchParams.set('ref', currentUser.uid);
+      info.textContent = `También puedes compartir el enlace web: ${webRef.toString()}`;
+    } catch {}
+  }
+}
+
+async function loadReferrals() {
+  if (!currentUser) return;
+  initReferralLink();
+  const listEl = document.getElementById('referrals-list');
+  const countEl = document.getElementById('ref-count');
+  const validCountEl = document.getElementById('ref-valid-count');
+  const investSumEl = document.getElementById('ref-invest-sum');
+  const progressEl = document.getElementById('ref-progress');
+  const supportBtn = document.getElementById('ref-support-btn');
+
+  const minInvest = Number(settings?.referral_min_usd || 10);
+  const target = 10;
+
+  const refSnap = await db.ref(`referrals/${currentUser.uid}`).once('value');
+  const refs = refSnap.exists() ? Object.keys(refSnap.val() || {}) : [];
+  if (countEl) countEl.textContent = String(refs.length);
+
+  if (!listEl) return;
+  if (refs.length === 0) {
+    listEl.innerHTML = '<p style="text-align: center; color: var(--text-secondary);">Sin referidos</p>';
+    if (validCountEl) validCountEl.textContent = '0';
+    if (investSumEl) investSumEl.textContent = formatUSD(0, 2);
+    if (progressEl) progressEl.style.width = '0%';
+    if (supportBtn) supportBtn.classList.add('hidden');
+    return;
+  }
+
+  let totalInvest = 0;
+  let validCount = 0;
+  const rows = [];
+  for (const rUid of refs) {
+    const uSnap = await db.ref(`users/${rUid}`).once('value');
+    const u = uSnap.val() || {};
+    let invested = 0;
+    const depSnap = await db.ref('deposits').orderByChild('uid').equalTo(rUid).limitToLast(200).once('value');
+    depSnap.forEach(ch => {
+      const d = ch.val();
+      if (d && d.status === 'approved') invested += Number(d.amount || 0);
+    });
+    totalInvest += invested;
+    if (invested >= minInvest) validCount += 1;
+    rows.push(`
+      <div class="transaction-item">
+        <div>
+          <strong>${u.username || rUid}</strong><br>
+          <small style=\"color: var(--text-secondary);\">UID: ${rUid}</small>
+        </div>
+        <div style=\"text-align:right;\">
+          <strong>${formatUSD(invested, 2)}</strong>
+        </div>
+      </div>
+    `);
+  }
+
+  listEl.innerHTML = rows.join('');
+  if (validCountEl) validCountEl.textContent = String(validCount);
+  if (investSumEl) investSumEl.textContent = formatUSD(totalInvest, 2);
+  const pct = Math.max(0, Math.min(100, (validCount / target) * 100));
+  if (progressEl) progressEl.style.width = pct + '%';
+
+  if (supportBtn) {
+    if (validCount >= target) {
+      supportBtn.classList.remove('hidden');
+      const contact = settings?.contact_telegram ? `https://t.me/${String(settings.contact_telegram).replace('@','')}` : null;
+      supportBtn.onclick = () => {
+        if (contact) {
+          window.open(contact, '_blank');
+        } else {
+          showAlert('Configura un contacto de soporte en settings', 'info');
+        }
+      };
+    } else {
+      supportBtn.classList.add('hidden');
+    }
+  }
+}
+
 function scrollToSection(sectionId) {
   const section = document.getElementById(sectionId);
   if (section) {
