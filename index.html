@@ -1417,6 +1417,22 @@ let machineAudios = {}; // Mapa de instanceId -> HTMLAudioElement
 const TELEGRAM_BOT_USERNAME = 'cloudminings_bot';
 let pendingReferrer = null;
 
+// Shim defensivo: evita ReferenceError si alguna llamada ocurre antes de definir la función real
+if (typeof window.parseRefFromURL !== 'function') {
+  window.parseRefFromURL = function() {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const ref = params.get('ref');
+      if (ref && typeof ref === 'string') {
+        localStorage.setItem('pending_ref', ref);
+        pendingReferrer = ref;
+      } else if (!pendingReferrer) {
+        pendingReferrer = localStorage.getItem('pending_ref');
+      }
+    } catch {}
+  };
+}
+
 // Formateadores de moneda
 function formatUSD(val, digits = 2) {
   return `$${Number(val || 0).toFixed(digits)}`;
@@ -1753,6 +1769,12 @@ function initReferralLink() {
     } catch {}
   }
 }
+
+// Exponer helpers en window para evitar problemas de ámbito
+window.initReferralLink = initReferralLink;
+window.applyPendingReferrer = applyPendingReferrer;
+window.loadReferrals = loadReferrals;
+window.parseRefFromURL = parseRefFromURL;
 
 async function loadReferrals() {
   if (!currentUser) return;
