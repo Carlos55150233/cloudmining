@@ -1765,7 +1765,7 @@ function initReferralLink() {
     try {
       const webRef = new URL(window.location.href);
       webRef.searchParams.set('ref', currentUser.uid);
-      info.textContent = `También puedes compartir el enlace web: ${webRef.toString()}`;
+      info.textContent = `Comparte tu links con amigos`;
     } catch {}
   }
 }
