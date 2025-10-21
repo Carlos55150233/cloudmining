@@ -38,6 +38,7 @@
   --glass: rgba(26, 31, 58, 0.8);
 }
 
+
 * {
   margin: 0;
   padding: 0;
@@ -247,7 +248,6 @@ body {
     filter: drop-shadow(0 0 20px rgba(0, 217, 255, 0.8));
   }
 }
-
 .hero-content p {
   font-size: clamp(1rem, 2vw, 1.5rem);
   color: var(--text-secondary);
@@ -797,6 +797,75 @@ canvas {
     </div>
   </section>
 
+  <!-- Admin View -->
+  <section id="admin-view" class="view hidden">
+    <div class="container">
+      <h2>Administrador</h2>
+      <div class="card" style="max-width:600px; margin:0 auto;">
+        <h3>Ajustes de Referidos</h3>
+        <div class="form-group">
+          <label>Mínimo de inversión por referido (USD)</label>
+          <input type="number" id="setting-ref-min" min="0" step="0.01" placeholder="10">
+        </div>
+        <div class="form-group">
+          <label>Contacto de Soporte (Telegram)</label>
+          <input type="text" id="setting-contact-telegram" placeholder="@TuSoporte">
+        </div>
+        <div style="display:flex; gap:10px;">
+          <button class="btn btn-primary" type="button" onclick="saveAdminSettings()">Guardar</button>
+          <button class="btn btn-secondary" type="button" onclick="loadAdmin()">Recargar</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Referrals View -->
+  <section id="referrals-view" class="view hidden">
+    <div class="container">
+      <h2>Referidos</h2>
+      <div class="card">
+        <h3 style="text-align:center;">Tu enlace de referido</h3>
+        <div class="form-group">
+          <label>Deep link de Telegram</label>
+          <div style="display:flex; gap:10px; align-items:center;">
+            <input type="text" id="referral-link" readonly>
+            <button class="copy-btn" type="button" onclick="copyToClipboard('referral-link')">📋</button>
+          </div>
+          <small id="referral-info" style="color: var(--text-secondary);"></small>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Progreso</h3>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-value" id="ref-count">0</div>
+            <div class="stat-label">Referidos Totales</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="ref-valid-count">0</div>
+            <div class="stat-label">Referidos Válidos</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="ref-invest-sum">$0.00</div>
+            <div class="stat-label">Total Invertido por Referidos</div>
+          </div>
+        </div>
+        <div class="progress-bar"><div id="ref-progress" class="progress-fill" style="width:0%"></div></div>
+        <div style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap;">
+          <button id="ref-support-btn" class="btn btn-primary hidden" type="button">Solicitar recompensa</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Mis Referidos</h3>
+        <div id="referrals-list" class="transaction-list">
+          <p style="text-align:center; color: var(--text-secondary);">Sin referidos</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- How It Works Section -->
   <section id="how-it-works" class="hidden">
     <div class="container">
@@ -1148,6 +1217,8 @@ canvas {
     </div>
   </section>
 
+  
+
 </div>
 
 <!-- Bottom Navigation -->
@@ -1155,6 +1226,10 @@ canvas {
   <a class="nav-item active" onclick="showView('dashboard-view')">
     <svg fill="currentColor" viewBox="0 0 20 20"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/></svg>
     <span>Inicio</span>
+  </a>
+  <a class="nav-item" onclick="showView('referrals-view')">
+    <svg fill="currentColor" viewBox="0 0 20 20"><path d="M13 7a3 3 0 11-6 0 3 3 0 016 0z"/><path fill-rule="evenodd" d="M2 13.5A4.5 4.5 0 016.5 9h7A4.5 4.5 0 0118 13.5V16a1 1 0 01-1 1H3a1 1 0 01-1-1v-2.5z" clip-rule="evenodd"/></svg>
+    <span>Referidos</span>
   </a>
   <a class="nav-item" onclick="showView('farm-view')">
     <svg fill="currentColor" viewBox="0 0 20 20"><path d="M3 12v3c0 1.657 3.134 3 7 3s7-1.343 7-3v-3c0 1.657-3.134 3-7 3s-7-1.343-7-3z"/><path d="M3 7v3c0 1.657 3.134 3 7 3s7-1.343 7-3V7c0 1.657-3.134 3-7 3S3 8.657 3 7z"/><path d="M17 5c0 1.657-3.134 3-7 3S3 6.657 3 5s3.134-3 7-3 7 1.343 7 3z"/></svg>
@@ -1339,6 +1414,8 @@ let soundEnabled = true;
 let render3D = true;
 let currentPurchaseItem = null;
 let machineAudios = {}; // Mapa de instanceId -> HTMLAudioElement
+const TELEGRAM_BOT_USERNAME = 'cloudminings_bot';
+let pendingReferrer = null;
 
 // Formateadores de moneda
 function formatUSD(val, digits = 2) {
@@ -1365,6 +1442,7 @@ auth.onAuthStateChanged(async (user) => {
     showView('dashboard-view');
     document.getElementById('bottom-nav').classList.remove('hidden');
     startRealtimeUpdates();
+    try { loadReferrals(); } catch (e) {}
   } else {
     currentUser = null;
     userProfile = null;
@@ -1413,6 +1491,8 @@ async function loadUserData() {
     loadProfile();
     loadSupport();
     loadFarm();
+    try { initReferralLink(); } catch (e) {}
+    try { await reconcileTelegramReferral(); } catch (e) { console.warn('reconcileTelegramReferral failed:', e); }
 
     // Check if first login
     const lastLogin = localStorage.getItem(`last_login_${currentUser.uid}`);
@@ -1496,6 +1576,7 @@ document.getElementById('register-form').addEventListener('submit', async (e) =>
         telegram_id: telegram,
         role: 'user'
       });
+      try { await applyPendingReferrer(user.uid); } catch (x) {}
     } catch (dbErr) {
       console.warn('User profile write warning:', dbErr);
       // No bloqueamos el registro si el perfil falla en escribirse por reglas; el Auth ya fue creado
@@ -1508,6 +1589,35 @@ document.getElementById('register-form').addEventListener('submit', async (e) =>
     showAlert(error.message, 'danger');
   }
 });
+
+// Helpers for Telegram referral reconciliation
+function normalizeTelegramId(tg) {
+  if (!tg) return '';
+  let s = String(tg).trim();
+  if (s.startsWith('@')) s = s.slice(1);
+  return s.toLowerCase();
+}
+
+async function reconcileTelegramReferral() {
+  try {
+    if (!currentUser || !userProfile) return;
+    if (userProfile.referrer_uid) return; // already set
+    const tg = normalizeTelegramId(userProfile.telegram_id);
+    if (!tg) return;
+    const pendingSnap = await db.ref(`telegram_referrals_pending/${tg}`).once('value');
+    if (!pendingSnap.exists()) return;
+    const payload = pendingSnap.val();
+    const refUid = payload && payload.referrer_uid;
+    if (!refUid || refUid === currentUser.uid) return;
+    const updates = {};
+    updates[`users/${currentUser.uid}/referrer_uid`] = refUid;
+    updates[`referrals/${refUid}/${currentUser.uid}`] = { joined_at: Date.now(), via: 'telegram' };
+    updates[`telegram_referrals_pending/${tg}`] = null;
+    await db.ref().update(updates);
+  } catch (e) {
+    console.warn('reconcileTelegramReferral error:', e);
+  }
+}
 
 // Login
 document.getElementById('login-form').addEventListener('submit', async (e) => {
@@ -1582,6 +1692,8 @@ function showView(viewId) {
       loadMarketplace();
     } else if (viewId === 'dashboard-view') {
       updateDashboard();
+    } else if (viewId === 'referrals-view') {
+      loadReferrals();
     }
   } catch (e) {
     console.warn('View load error:', e);
@@ -2737,6 +2849,7 @@ function init3DFarm() {
 
 // Initialize hero 3D on page load
 init3DHero();
+parseRefFromURL();
 
 // ═══════════════════════════════════════════════════════════════════════════
 // WALLET
@@ -3269,11 +3382,30 @@ function switchTab(tabId) {
 }
 
 function copyToClipboard(inputId) {
-  const input = document.getElementById(inputId);
-  if (input) {
-    input.select();
-    document.execCommand('copy');
-    showAlert('Copiado al portapapeles', 'success');
+  const el = document.getElementById(inputId);
+  if (!el) return;
+  const text = (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') ? el.value : (el.textContent || '');
+  if (!text) return;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text)
+      .then(() => showAlert('Copiado al portapapeles', 'success'))
+      .catch(() => {
+        try {
+          el.select && el.select();
+          document.execCommand('copy');
+          showAlert('Copiado al portapapeles', 'success');
+        } catch (e) {
+          showAlert('No se pudo copiar', 'danger');
+        }
+      });
+  } else {
+    try {
+      el.select && el.select();
+      document.execCommand('copy');
+      showAlert('Copiado al portapapeles', 'success');
+    } catch (e) {
+      showAlert('No se pudo copiar', 'danger');
+    }
   }
 }
 
